@@ -11,9 +11,9 @@
 </head>
 <body>
 
-  <!-- ★ 背景動画：muted / playsinline / loop / autoplay すべて指定 -->
+  <!-- ⭐ 背景動画：src を bg.mov に変更 -->
   <video id="bgVideo" class="video-bg"
-         src="media/bg.mp4"
+         src="media/bg.mov"
          muted playsinline loop autoplay></video>
 
   <!-- 右上スコア -->
@@ -28,27 +28,15 @@
   </div>
 
   <!-- -------- JavaScript -------- -->
-  <!-- ホーム用初期化（クリック SE ＋合計スコア） -->
   <script type="module" src="js/home.js"></script>
 
-  <!-- ★ 背景動画が自動再生されない端末向けの再生保証スクリプト -->
+  <!-- 背景動画再生保証（拡張子変更のみでロジックは同じ）-->
   <script type="module">
-    import './js/home.js';  /* 既に読み込んでいても重複実行なし */
-
+    import './js/home.js';
     const bgVid = document.getElementById('bgVideo');
-
-    /** 再生を試み、Promise が reject されても無視 */
-    function tryPlay() {
-      const p = bgVid.play();
-      if (p !== undefined) {
-        p.catch(() => {}); // ブロックされても何もしない
-      }
-    }
-
-    tryPlay(); // ページ読み込み直後に 1 度目
-
-    /* 最初のユーザ操作で再試行（一部 iOS で必須） */
-    document.addEventListener('click', tryPlay, { once: true });
+    function tryPlay(){const p=bgVid.play(); if(p!==undefined){p.catch(()=>{});} }
+    tryPlay();
+    document.addEventListener('click', tryPlay, {once:true});
   </script>
 </body>
 </html>
