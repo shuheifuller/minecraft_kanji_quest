@@ -1,21 +1,54 @@
-<!DOCTYPE html><html lang="ja">
+<!DOCTYPE html>
+<html lang="ja">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>漢字冒険 – ホーム</title>
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/minecraft-font.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>漢字冒険 – ホーム</title>
+
+  <!-- 共通スタイル -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/minecraft-font.css">
 </head>
 <body>
-<video class="video-bg" src="media/bg.mp4" autoplay muted loop playsinline></video>
 
-<div class="score-badge">総得点：<span id="totalScore">0</span></div>
+  <!-- ★ 背景動画：muted / playsinline / loop / autoplay すべて指定 -->
+  <video id="bgVideo" class="video-bg"
+         src="media/bg.mp4"
+         muted playsinline loop autoplay></video>
 
-<div class="container" style="text-align:center">
-  <h1 style="font-size:32px;margin-bottom:20px">漢字読解テスト</h1>
-  <a href="test.html"  class="btn">▶ 漢字読解テストへ</a>
-  <a href="score.html" class="btn">▶ スコアシート</a>
-  <a href="archive.html" class="btn">▶ アーカイブ</a>
-</div>
+  <!-- 右上スコア -->
+  <div class="score-badge">総得点：<span id="totalScore">0</span></div>
 
-<script type="module" src="js/home.js"></script>
-</body></html>
+  <!-- 中央メニュー -->
+  <div class="container" style="text-align:center">
+    <h1 style="font-size:32px;margin-bottom:20px">漢字読解テスト</h1>
+    <a href="test.html"  class="btn">▶ 漢字読解テストへ</a>
+    <a href="score.html" class="btn">▶ スコアシート</a>
+    <a href="archive.html" class="btn">▶ アーカイブ</a>
+  </div>
+
+  <!-- -------- JavaScript -------- -->
+  <!-- ホーム用初期化（クリック SE ＋合計スコア） -->
+  <script type="module" src="js/home.js"></script>
+
+  <!-- ★ 背景動画が自動再生されない端末向けの再生保証スクリプト -->
+  <script type="module">
+    import './js/home.js';  /* 既に読み込んでいても重複実行なし */
+
+    const bgVid = document.getElementById('bgVideo');
+
+    /** 再生を試み、Promise が reject されても無視 */
+    function tryPlay() {
+      const p = bgVid.play();
+      if (p !== undefined) {
+        p.catch(() => {}); // ブロックされても何もしない
+      }
+    }
+
+    tryPlay(); // ページ読み込み直後に 1 度目
+
+    /* 最初のユーザ操作で再試行（一部 iOS で必須） */
+    document.addEventListener('click', tryPlay, { once: true });
+  </script>
+</body>
+</html>
