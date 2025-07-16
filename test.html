@@ -1,0 +1,22 @@
+<!DOCTYPE html><html lang="ja">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>テスト一覧</title>
+<link rel="stylesheet" href="css/style.css"><link rel="stylesheet" href="css/minecraft-font.css"></head>
+<body class="test-bg">
+<div class="container" id="testList"></div>
+<script type="module">
+import {{getArchive,playClick}} from './js/app.js';
+fetch('tests.json').then(r=>r.json()).then(data=>{
+  const list=document.getElementById('testList');
+  data.tests.forEach(t=>{
+    if(getArchive().includes(t.id))return; // 未完了だけ表示
+    const a=document.createElement('a');a.href=`single_test.html?id=${t.id}`;a.className='btn';a.textContent=`▶ テスト${t.id}`;
+    a.addEventListener('click',playClick);
+    list.appendChild(a);
+  });
+  const newBtn=document.createElement('a');newBtn.href='#';newBtn.className='btn';newBtn.textContent='＋ 新規テストアップロード手順';
+  newBtn.addEventListener('click',()=>alert('tests.json に追記し、画像を media/ へ置き、GitHub で Commit してください。'));
+  list.appendChild(newBtn);
+});
+</script>
+</body></html>
