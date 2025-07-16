@@ -1,11 +1,14 @@
-import {totalScore, playClick} from './app.js';
+/*----------------------------------------
+  home.js  –  ホーム画面用スクリプト
+----------------------------------------*/
+import { totalScore, playClick } from './app.js';
 
-document.addEventListener('DOMContentLoaded',()=>{
-  // 合計スコア表示
+document.addEventListener('DOMContentLoaded', () => {
+  /* 合計スコアを右上バッジへ表示 */
   document.getElementById('totalScore').textContent = totalScore();
 
-  // すべてのボタンでクリック音
-  document.querySelectorAll('.btn').forEach(btn=>{
-    btn.addEventListener('click',playClick);
+  /* すべての .btn クリック時に SE 再生 */
+  document.querySelectorAll('.btn').forEach(btn => {
+    btn.addEventListener('click', playClick);
   });
 });
