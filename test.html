@@ -1,52 +1,52 @@
 <!DOCTYPE html><html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>テスト一覧</title>
+<title>漢字冒険 – ホーム</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/minecraft-font.css">
 </head>
-<body class="test-bg">
-<div class="container" id="testList">
-  <h2 style="margin-bottom:20px">📝 漢字読解テスト一覧</h2>
+<body>
+
+<!-- 背景動画 (.mp4) -->
+<video id="bgVideo" class="video-bg"
+       src="media/bg.mp4"
+       muted playsinline loop autoplay></video>
+
+<!-- ★ BGM を自動ループ再生（無音なら volume=0） -->
+<audio id="bgm" src="media/bgm.mp3" autoplay loop></audio>
+
+<!-- スコアバッジ -->
+<div class="score-badge">総得点：<span id="totalScore">0</span></div>
+
+<!-- 中央メニュー：home-menu クラスで中央配置 -->
+<div class="container home-menu">
+  <h1 style="font-size:32px;margin-bottom:20px">漢字読解テスト</h1>
+  <a href="test.html"   class="btn">▶ 漢字読解テストへ</a>
+  <a href="score.html"  class="btn">▶ スコアシート</a>
+  <a href="archive.html" class="btn">▶ アーカイブ</a>
 </div>
 
+<!-- JavaScript -->
+<script type="module" src="js/home.js"></script>
+
+<!-- 背景動画 / BGM が自動再生されない端末向け再試行 -->
 <script type="module">
-import { getArchive, playClick } from './js/app.js';
+  const vid = document.getElementById('bgVideo');
+  const bgm = document.getElementById('bgm');
 
-const listElm = document.getElementById('testList');
+  function tryPlayMedia(media){
+    const p = media.play();
+    if(p!==undefined){ p.catch(()=>{}); }
+  }
 
-/* tests.json は index.html と同じ階層に置く想定 → "./tests.json" */
-fetch('./tests.json')
-  .then(res => {
-    if (!res.ok) throw new Error('tests.json が読み込めません');
-    return res.json();
-  })
-  .then(data => {
-    if (!data.tests || !data.tests.length) {
-      listElm.innerHTML += '<p>テストが定義されていません。</p>';
-      return;
-    }
+  /* 初回試行 */
+  tryPlayMedia(vid);
+  tryPlayMedia(bgm);
 
-    data.tests.forEach(test => {
-      // アーカイブ済みは表示しない
-      if (getArchive().includes(test.id)) return;
-
-      const a = document.createElement('a');
-      a.href = `single_test.html?id=${test.id}`;
-      a.className = 'btn';
-      a.textContent = `▶ テスト${test.id}`;
-      a.addEventListener('click', playClick);
-      listElm.appendChild(a);
-    });
-
-    /* テストが 0 件しかなければメッセージ */
-    if (listElm.querySelectorAll('.btn').length === 0) {
-      listElm.innerHTML += '<p>表示できるテストがありません。</p>';
-    }
-  })
-  .catch(err => {
-    console.error(err);
-    listElm.innerHTML += `<p style="color:red">${err.message}</p>`;
-  });
+  /* ユーザ操作後に再試行（iOS 対策） */
+  document.addEventListener('click', () => {
+    tryPlayMedia(vid);
+    tryPlayMedia(bgm);
+  }, { once:true });
 </script>
 </body></html>
