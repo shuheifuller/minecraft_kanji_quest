@@ -1,54 +1,81 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>漢字冒険 – ホーム</title>
 
   <!-- 共通スタイル -->
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/minecraft-font.css">
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/minecraft-font.css" />
 </head>
 <body>
 
-  <!-- ★ 背景動画：muted / playsinline / loop / autoplay すべて指定 -->
+  <!-- 背景動画  -->
   <video id="bgVideo" class="video-bg"
          src="media/bg.mp4"
          muted playsinline loop autoplay></video>
 
-  <!-- 右上スコア -->
+  <!-- BGM：iOS対策で最初は muted -->
+  <audio id="bgm" src="media/bgm.mp3" autoplay loop muted playsinline></audio>
+
+  <!-- 右上：総得点 -->
   <div class="score-badge">総得点：<span id="totalScore">0</span></div>
 
   <!-- 中央メニュー -->
-  <div class="container" style="text-align:center">
+  <div class="container home-menu">
     <h1 style="font-size:32px;margin-bottom:20px">漢字読解テスト</h1>
-    <a href="test.html"  class="btn">▶ 漢字読解テストへ</a>
-    <a href="score.html" class="btn">▶ スコアシート</a>
+
+    <!-- 1) 漢字読解テストへ  ※href を test.html に固定 -->
+    <a href="test.html"   class="btn">▶ 漢字読解テストへ</a>
+    <!-- 2) スコアシート -->
+    <a href="score.html"  class="btn">▶ スコアシート</a>
+    <!-- 3) アーカイブ -->
     <a href="archive.html" class="btn">▶ アーカイブ</a>
   </div>
 
-  <!-- -------- JavaScript -------- -->
-  <!-- ホーム用初期化（クリック SE ＋合計スコア） -->
+  <!-- ------------ JavaScript --------------- -->
+  <!-- ホーム初期化（クリックSE・得点表示） -->
   <script type="module" src="js/home.js"></script>
 
-  <!-- ★ 背景動画が自動再生されない端末向けの再生保証スクリプト -->
+  <!-- 背景動画と BGM を確実に再生させるためのフォールバック -->
   <script type="module">
-    import './js/home.js';  /* 既に読み込んでいても重複実行なし */
+    import { audioCtx } from './js/app.js';
 
-    const bgVid = document.getElementById('bgVideo');
+    const vid = document.getElementById('bgVideo');
+    const bgm = document.getElementById('bgm');
 
-    /** 再生を試み、Promise が reject されても無視 */
-    function tryPlay() {
-      const p = bgVid.play();
-      if (p !== undefined) {
-        p.catch(() => {}); // ブロックされても何もしない
-      }
+    /* ---------------- 背景動画 ---------------- */
+    function playMedia(media){
+      const p = media.play();
+      if(p!==undefined){ p.catch(()=>{}); }
     }
+    playMedia(vid);
 
-    tryPlay(); // ページ読み込み直後に 1 度目
+    /* ---------------- iOS BGM 自動再生ハック ----------------
+       1) muted autoplay なら許可される
+       2) canplay イベント後に unmute + volume をあげる
+    -------------------------------------------------------*/
+    bgm.volume = 0; // 無音でスタート
+    playMedia(bgm);
 
-    /* 最初のユーザ操作で再試行（一部 iOS で必須） */
-    document.addEventListener('click', tryPlay, { once: true });
+    bgm.addEventListener('canplay', () => {
+      /* 0.2 秒後に音量ON：iOSでも 99% 通る */
+      setTimeout(() => {
+        bgm.muted  = false;
+        bgm.volume = 1.0;        // 必要に応じて 0.5 など
+        bgm.play().catch(()=>{}); // 念押し
+      }, 200);
+    });
+
+    /* 万一停止した場合や AudioContext がサスペンドの場合は
+       最初のユーザ操作で resume & 再生 */
+    function resumeAudio(){
+      if(audioCtx.state === 'suspended'){ audioCtx.resume(); }
+      playMedia(bgm);
+      playMedia(vid);
+    }
+    document.addEventListener('click', resumeAudio, { once:true });
   </script>
 </body>
 </html>
