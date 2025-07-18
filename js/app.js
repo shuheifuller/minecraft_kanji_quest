@@ -1,61 +1,39 @@
 /*==================================================
-   app.js  –  共通ユーティリティ & 永続ストレージ管理
+   app.js  –  共通ユーティリティ & ストレージ管理
 ==================================================*/
+export const KEY_SCORE   = 'mc_kanji_scores';
+export const KEY_ARCHIVE = 'mc_kanji_archive';
 
-/* ---------- ストレージキー ---------- */
-const KEY_SCORE   = 'mc_kanji_scores';   // 配列 [{id,score,date}, ...]
-const KEY_ARCHIVE = 'mc_kanji_archive';  // 配列 ["1","2",...]
-
-export function getScores() {
-  return JSON.parse(localStorage.getItem(KEY_SCORE) || '[]');
-}
-
-export function addScore(rec) {
-  const list = getScores();
-  list.push(rec);
-  localStorage.setItem(KEY_SCORE, JSON.stringify(list));
-}
-
-export function getArchive() {
-  return JSON.parse(localStorage.getItem(KEY_ARCHIVE) || '[]');
-}
-
-export function archiveTest(id) {
-  const arr = getArchive();
-  if (!arr.includes(id)) {
-    arr.push(id);
-    localStorage.setItem(KEY_ARCHIVE, JSON.stringify(arr));
-  }
-}
-
-export function undoArchive(id) {
-  const arr = getArchive().filter(x => x !== id);
-  localStorage.setItem(KEY_ARCHIVE, JSON.stringify(arr));
-}
-
-export function isArchived(id) {
-  return getArchive().includes(id);
-}
-
-export function totalScore() {
-  return getScores().reduce((sum, rec) => sum + rec.score, 0);
-}
+/* ---------- ストレージ ---------- */
+export const getScores   = () => JSON.parse(localStorage.getItem(KEY_SCORE)   || '[]');
+export const getArchive  = () => JSON.parse(localStorage.getItem(KEY_ARCHIVE) || '[]');
+export const addScore    = r => { const s=getScores(); s.push(r); localStorage.setItem(KEY_SCORE,JSON.stringify(s)); };
+export const archiveTest = id=>{ const a=getArchive(); if(!a.includes(id)){a.push(id);localStorage.setItem(KEY_ARCHIVE,JSON.stringify(a));}};
+export const undoArchive = id=>{ const a=getArchive().filter(x=>x!==id); localStorage.setItem(KEY_ARCHIVE,JSON.stringify(a));};
+export const isArchived  = id=> getArchive().includes(id);
+export const totalScore  = () => getScores().reduce((t,r)=>t+r.score,0);
 
 /*==================================================
-   効果音 – クリック SE
-   iOS Safari 対策：Audio インスタンスを 1 度だけ生成し、
-   再生時に currentTime を 0 へ巻き戻して即再生する。
+   効果音 (click.mp3) – 低レイテンシ版
 ==================================================*/
-const clickSE = new Audio('media/click.mp3');
-clickSE.volume = 0.5;  // 必要に応じて調整
+export const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+let clickBuffer = null;
 
-/** ボタン類で呼び出す関数。クリック音を確実に鳴らす */
+/* クリック SE をプリロードして AudioBuffer に保持 */
+fetch('media/click.mp3')
+  .then(r => r.arrayBuffer())
+  .then(buf => audioCtx.decodeAudioData(buf))
+  .then(decoded => { clickBuffer = decoded; })
+  .catch(err   => console.error('click.mp3 load error', err));
+
+/** ボタン用：AudioContext が resume されていなければ resume→再生 */
 export function playClick() {
-  try {
-    clickSE.currentTime = 0; // 巻き戻し
-    clickSE.play();         // iOS 15+ でもユーザ操作内であれば再生可能
-  } catch (e) {
-    // まれに play() がブロックされる場合は無視
-    console.warn('SE play blocked', e);
+  if (!clickBuffer) return;               // まだロード中
+  if (audioCtx.state === 'suspended') {   // iOS 初回タップ対策
+    audioCtx.resume();
   }
+  const src = audioCtx.createBufferSource();
+  src.buffer = clickBuffer;
+  src.connect(audioCtx.destination);
+  src.start(0);                           // 即時発音
 }
