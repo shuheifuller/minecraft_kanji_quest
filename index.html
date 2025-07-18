@@ -1,64 +1,54 @@
-<!DOCTYPE html><html lang="ja">
+<!DOCTYPE html>
+<html lang="ja">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>KANJIMINE QUEST – ホーム</title>
-  <link rel="stylesheet" href="css/style.css" />
-  <link rel="stylesheet" href="css/minecraft-font.css" />
-  <style>
-    /* ③ 背景動画はクリックを透過させる */
-    .video-bg{pointer-events:none;}
-  </style>
+
+  <!-- 共通スタイル -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/minecraft-font.css">
 </head>
 <body>
 
-<!-- 背景動画 -->
-<video id="bgVideo" class="video-bg" src="media/bg.mp4" muted playsinline loop autoplay></video>
+  <!-- ★ 背景動画：muted / playsinline / loop / autoplay すべて指定 -->
+  <video id="bgVideo" class="video-bg"
+         src="media/bg.mp4"
+         muted playsinline loop autoplay></video>
 
-<!-- BGM -->
-<audio id="bgm" src="media/bgm.mp3" autoplay loop muted playsinline></audio>
+  <!-- 右上スコア -->
+  <div class="score-badge">総得点：<span id="totalScore">0</span></div>
 
-<!-- スコア -->
-<div class="score-badge">総得点：<span id="totalScore">0</span></div>
+  <!-- 中央メニュー -->
+  <div class="container" style="text-align:center">
+    <h1 class="mc-title" style="margin-bottom:20px;">KANJIMINE QUEST</h1>
+    <a href="test.html"  class="btn">▶ 漢字読解テストへ</a>
+    <a href="score.html" class="btn">▶ スコアシート</a>
+    <a href="archive.html" class="btn">▶ アーカイブ</a>
+  </div>
 
-<!-- 中央メニュー -->
-<div class="container home-menu">
-  <h1 class="mc-title" style="margin-bottom:20px;">KANJIMINE QUEST</h1>
+  <!-- -------- JavaScript -------- -->
+  <!-- ホーム用初期化（クリック SE ＋合計スコア） -->
+  <script type="module" src="js/home.js"></script>
 
-  <!-- ① href のまま → JS で prevent しない -->
-  <a id="btnTest" href="test.html" class="btn">▶ 漢字読解テストへ</a>
-  <a href="score.html"  class="btn">▶ スコアシート</a>
-  <a href="archive.html" class="btn">▶ アーカイブ</a>
-</div>
+  <!-- ★ 背景動画が自動再生されない端末向けの再生保証スクリプト -->
+  <script type="module">
+    import './js/home.js';  /* 既に読み込んでいても重複実行なし */
 
-<!-- ------------ JavaScript --------------- -->
-<script type="module">
-import { totalScore, playClick, audioCtx } from './js/app.js';
+    const bgVid = document.getElementById('bgVideo');
 
-/* 合計スコア */
-document.getElementById('totalScore').textContent = totalScore();
+    /** 再生を試み、Promise が reject されても無視 */
+    function tryPlay() {
+      const p = bgVid.play();
+      if (p !== undefined) {
+        p.catch(() => {}); // ブロックされても何もしない
+      }
+    }
 
-/* ① 効果音だけ鳴らしてリンク遷移はブラウザ任せ */
-document.querySelectorAll('.btn').forEach(btn=>{
-  btn.addEventListener('click', playClick);
-});
+    tryPlay(); // ページ読み込み直後に 1 度目
 
-/* ② BGM 初期化を安全化 */
-try{
-  const bgm = document.getElementById('bgm');
-  bgm.addEventListener('canplay',()=>{ setTimeout(()=>{ bgm.muted=false; bgm.volume=0.9; },200); });
-}catch(e){ console.warn('BGM error',e); }
-
-/* 背景動画再生保証 */
-const vid=document.getElementById('bgVideo');
-const play=(m)=>{ const p=m.play(); if(p!==undefined) p.catch(()=>{}); };
-play(vid); play(bgm);
-
-/* iOS: 最初のタップで resume */
-document.addEventListener('click',()=>{
-  if(audioCtx.state==='suspended') audioCtx.resume();
-  play(vid); play(bgm);
-},{once:true});
-</script>
-
-</body></html>
+    /* 最初のユーザ操作で再試行（一部 iOS で必須） */
+    document.addEventListener('click', tryPlay, { once: true });
+  </script>
+</body>
+</html>
