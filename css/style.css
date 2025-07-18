@@ -49,3 +49,12 @@ body.test-bg{background:url('../media/minecraft1.jpg') center/cover fixed;}
 @media (prefers-color-scheme: dark){
   .card{border-color:#55ff55}
 }
+/* 末尾に追記 －－－－ */
+.home-menu{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;      /* 垂直方向の中央寄せ */
+  text-align:center;
+}
