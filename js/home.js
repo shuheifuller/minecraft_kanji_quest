@@ -1,14 +1,21 @@
 /*----------------------------------------
-  home.js  –  ホーム画面用スクリプト
+  home.js  –  ホーム画面初期化
 ----------------------------------------*/
-import { totalScore, playClick } from './app.js';
+import { totalScore, playClick, audioCtx } from './app.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-  /* 合計スコアを右上バッジへ表示 */
+  /* 総得点を表示 */
   document.getElementById('totalScore').textContent = totalScore();
 
-  /* すべての .btn クリック時に SE 再生 */
-  document.querySelectorAll('.btn').forEach(btn => {
-    btn.addEventListener('click', playClick);
-  });
+  /* すべての .btn にクリック SE を付与 */
+  document.querySelectorAll('.btn').forEach(btn =>
+    btn.addEventListener('click', playClick)
+  );
+
+  /* 初回ユーザ操作で AudioContext/BGM を resume */
+  document.addEventListener('click', () => {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const bgm = document.getElementById('bgm');
+    if (bgm && bgm.paused) bgm.play().catch(()=>{});
+  }, { once:true });
 });
