@@ -1,83 +1,64 @@
-<!DOCTYPE html>
-<html lang="ja">
+<!DOCTYPE html><html lang="ja">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>KANJIMINE QUEST – ホーム</title>
-
-  <!-- 共通スタイル -->
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/minecraft-font.css" />
+  <style>
+    /* ③ 背景動画はクリックを透過させる */
+    .video-bg{pointer-events:none;}
+  </style>
 </head>
 <body>
 
-  <!-- 背景動画 -->
-  <video id="bgVideo" class="video-bg"
-         src="media/bg.mp4"
-         muted playsinline loop autoplay></video>
+<!-- 背景動画 -->
+<video id="bgVideo" class="video-bg" src="media/bg.mp4" muted playsinline loop autoplay></video>
 
-  <!-- BGM -->
-  <audio id="bgm" src="media/bgm.mp3" autoplay loop muted playsinline></audio>
+<!-- BGM -->
+<audio id="bgm" src="media/bgm.mp3" autoplay loop muted playsinline></audio>
 
-  <!-- スコア -->
-  <div class="score-badge">総得点：<span id="totalScore">0</span></div>
+<!-- スコア -->
+<div class="score-badge">総得点：<span id="totalScore">0</span></div>
 
-  <!-- 中央メニュー -->
-  <div class="container home-menu">
-    <h1 class="mc-title" style="margin-bottom:20px;">KANJIMINE QUEST</h1>
-    <a id="btnTest" href="test.html" class="btn">▶ 漢字読解テストへ</a>
-    <a href="score.html"  class="btn">▶ スコアシート</a>
-    <a href="archive.html" class="btn">▶ アーカイブ</a>
-  </div>
+<!-- 中央メニュー -->
+<div class="container home-menu">
+  <h1 class="mc-title" style="margin-bottom:20px;">KANJIMINE QUEST</h1>
 
-  <!-- -------- JavaScript -------- -->
-  <script type="module">
-    import { totalScore, playClick, audioCtx } from './js/app.js';
+  <!-- ① href のまま → JS で prevent しない -->
+  <a id="btnTest" href="test.html" class="btn">▶ 漢字読解テストへ</a>
+  <a href="score.html"  class="btn">▶ スコアシート</a>
+  <a href="archive.html" class="btn">▶ アーカイブ</a>
+</div>
 
-    /* 合計スコア表示 */
-    document.getElementById('totalScore').textContent = totalScore();
+<!-- ------------ JavaScript --------------- -->
+<script type="module">
+import { totalScore, playClick, audioCtx } from './js/app.js';
 
-    /* 通常ボタン：クリック SE だけ */
-    document.querySelectorAll('.btn').forEach(btn => {
-      if (btn.id !== 'btnTest') {          // テストボタンは別ハンドラ
-        btn.addEventListener('click', playClick);
-      }
-    });
+/* 合計スコア */
+document.getElementById('totalScore').textContent = totalScore();
 
-    /* ★ テストボタン：SE → ページ遷移を確実に実行 */
-    document.getElementById('btnTest').addEventListener('click', e => {
-      e.preventDefault();                  // もとのリンク動作を停止
-      playClick();                         // 効果音
-      /* 50ms 後に遷移：iOS でも音が途切れず鳴る */
-      setTimeout(() => { location.href = 'test.html'; }, 50);
-    });
+/* ① 効果音だけ鳴らしてリンク遷移はブラウザ任せ */
+document.querySelectorAll('.btn').forEach(btn=>{
+  btn.addEventListener('click', playClick);
+});
 
-    /* -------- 背景動画 / BGM 再生保証 -------- */
-    const vid = document.getElementById('bgVideo');
-    const bgm = document.getElementById('bgm');
+/* ② BGM 初期化を安全化 */
+try{
+  const bgm = document.getElementById('bgm');
+  bgm.addEventListener('canplay',()=>{ setTimeout(()=>{ bgm.muted=false; bgm.volume=0.9; },200); });
+}catch(e){ console.warn('BGM error',e); }
 
-    function playMedia(media){
-      const p = media.play();
-      if (p !== undefined) p.catch(()=>{});
-    }
-    playMedia(vid);
-    playMedia(bgm);
+/* 背景動画再生保証 */
+const vid=document.getElementById('bgVideo');
+const play=(m)=>{ const p=m.play(); if(p!==undefined) p.catch(()=>{}); };
+play(vid); play(bgm);
 
-    /* BGM：muted autoplay → canplay 後に unmute  */
-    bgm.addEventListener('canplay', () => {
-      setTimeout(() => {
-        bgm.muted = false;
-        bgm.volume = 0.9;
-        bgm.play().catch(()=>{});
-      }, 200);
-    });
+/* iOS: 最初のタップで resume */
+document.addEventListener('click',()=>{
+  if(audioCtx.state==='suspended') audioCtx.resume();
+  play(vid); play(bgm);
+},{once:true});
+</script>
 
-    /* 最初のユーザ操作で AudioContext / 媒体を再開 */
-    document.addEventListener('click', () => {
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      playMedia(vid);
-      playMedia(bgm);
-    }, { once:true });
-  </script>
-</body>
-</html>
+</body></html>
