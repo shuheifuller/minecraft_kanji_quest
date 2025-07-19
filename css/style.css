@@ -40,8 +40,16 @@ th,td{padding:10px;border:2px solid #fff;font-size:12px}
 /*------------------------------------
   スコアバッジ
 ------------------------------------*/
-.score-badge{position:fixed;top:10px;right:10px;background:#0008;padding:10px 18px;border:3px solid #fff;font-size:14px}
-
+.score-badge {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background: #0008; /* Darker color with 0.5 opacity */
+  color: #fff; /* Set text color to white */
+  padding: 10px 18px;
+  border: 3px solid #fff;
+  font-size: 14px;
+}
 /*------------------------------------
   背景画像 (test.html)
 ------------------------------------*/
@@ -84,11 +92,4 @@ body.test-bg{background:url('../media/minecraft1.jpg') center/cover fixed;}
   align-items: center;
   min-height: 100vh; /* Vertically center the content */
   text-align: center;
-}
-.home-menu .card {
-  background-color: rgba(60, 140, 60, 0.8); /* Green color with 80% opacity */
-  padding: 20px;
-  border: 3px solid #fff;
-  border-radius: 12px;
-  margin-bottom: 20px;
 }
