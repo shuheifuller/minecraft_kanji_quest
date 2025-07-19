@@ -85,3 +85,10 @@ body.test-bg{background:url('../media/minecraft1.jpg') center/cover fixed;}
   min-height: 100vh; /* Vertically center the content */
   text-align: center;
 }
+.home-menu .card {
+  background-color: rgba(60, 140, 60, 0.8); /* Green color with 80% opacity */
+  padding: 20px;
+  border: 3px solid #fff;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
