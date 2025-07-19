@@ -95,7 +95,7 @@ body.test-bg{background:url('../media/minecraft1.jpg') center/cover fixed;}
 }
 
 .home-menu .btn {
-  background: rgba(60, 140, 60, 0.8); /* Green color with 80% opacity */
+  background: rgba(60, 140, 60, 0.6); /* Green color with 80% opacity */
   border: 3px solid #fff;
   color: #fff;
   padding: 14px 20px;
@@ -107,5 +107,5 @@ body.test-bg{background:url('../media/minecraft1.jpg') center/cover fixed;}
 }
 
 .home-menu .btn:hover {
-  background: rgba(85, 170, 85, 0.8); /* Slightly lighter green on hover */
+  background: rgba(85, 170, 85, 0.6); /* Slightly lighter green on hover */
 }
