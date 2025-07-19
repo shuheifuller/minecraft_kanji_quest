@@ -76,3 +76,12 @@ body.test-bg{background:url('../media/minecraft1.jpg') center/cover fixed;}
 @media (max-width:600px) {
   .mc-title {font-size: 26px;}
 }
+
+.home-menu {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh; /* Vertically center the content */
+  text-align: center;
+}
