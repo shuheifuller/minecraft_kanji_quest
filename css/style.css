@@ -93,3 +93,19 @@ body.test-bg{background:url('../media/minecraft1.jpg') center/cover fixed;}
   min-height: 100vh; /* Vertically center the content */
   text-align: center;
 }
+
+.home-menu .btn {
+  background: rgba(60, 140, 60, 0.8); /* Green color with 80% opacity */
+  border: 3px solid #fff;
+  color: #fff;
+  padding: 14px 20px;
+  text-align: center;
+  margin: 12px auto;
+  width: 280px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.home-menu .btn:hover {
+  background: rgba(85, 170, 85, 0.8); /* Slightly lighter green on hover */
+}
