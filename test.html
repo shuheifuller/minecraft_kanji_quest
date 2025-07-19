@@ -1,52 +1,59 @@
-<!DOCTYPE html><html lang="ja">
+<!DOCTYPE html>
+<html lang="ja">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>テスト一覧</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>現在のテスト</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/minecraft-font.css">
+<style>
+.current-test-wrap{
+  max-width:800px;margin:40px auto;padding:24px;
+  background:rgba(0,0,0,.6);border:3px solid #fff;border-radius:12px;
+  color:#fff;text-align:center
+}
+.info{font-size:13px;line-height:1.6;margin-top:10px}
+.done-msg{font-size:18px;margin-top:30px;color:#55ff55}
+</style>
 </head>
 <body class="test-bg">
-<div class="container" id="testList">
-  <h2 style="margin-bottom:20px">📝 漢字読解テスト一覧</h2>
+<div class="current-test-wrap">
+  <h1 class="mc-title" style="font-size:28px;margin-bottom:10px;">KANJIMINE QUEST – テスト</h1>
+  <div id="pendingArea"></div>
+  <p class="info">
+    1つずつ じゅんばんに すすめます。<br>
+    テストをおわると つぎのテストが あれば あらわれます。
+  </p>
+  <p style="margin-top:15px;"><a href="archive.html" class="btn" style="width:240px;">▶ アーカイブを見る</a></p>
 </div>
 
 <script type="module">
-import { getArchive, playClick } from './js/app.js';
+import { firstPendingId, playClick } from './js/app.js';
 
-const listElm = document.getElementById('testList');
-
-/* tests.json は index.html と同じ階層に置く想定 → "./tests.json" */
-fetch('./tests.json')
-  .then(res => {
-    if (!res.ok) throw new Error('tests.json が読み込めません');
-    return res.json();
-  })
-  .then(data => {
-    if (!data.tests || !data.tests.length) {
-      listElm.innerHTML += '<p>テストが定義されていません。</p>';
+(async ()=>{
+  const area = document.getElementById('pendingArea');
+  try{
+    const res = await fetch('./tests.json',{cache:'no-store'});
+    if(!res.ok){ area.innerHTML='<p style="color:#ffaaaa;">tests.json 読み込み失敗 (HTTP '+res.status+')</p>'; return;}
+    const data = await res.json();
+    if(!data.tests || !Array.isArray(data.tests)){ area.innerHTML='<p style="color:#ffaaaa;">tests 配列がありません。</p>'; return;}
+    const id = firstPendingId(data.tests);
+    if(!id){
+      area.innerHTML = '<div class="done-msg">すべてのテストを クリア しました！</div>';
       return;
     }
-
-    data.tests.forEach(test => {
-      // アーカイブ済みは表示しない
-      if (getArchive().includes(test.id)) return;
-
-      const a = document.createElement('a');
-      a.href = `single_test.html?id=${test.id}`;
-      a.className = 'btn';
-      a.textContent = `▶ テスト${test.id}`;
-      a.addEventListener('click', playClick);
-      listElm.appendChild(a);
-    });
-
-    /* テストが 0 件しかなければメッセージ */
-    if (listElm.querySelectorAll('.btn').length === 0) {
-      listElm.innerHTML += '<p>表示できるテストがありません。</p>';
-    }
-  })
-  .catch(err => {
-    console.error(err);
-    listElm.innerHTML += `<p style="color:red">${err.message}</p>`;
-  });
+    // 表示する1件
+    const btn = document.createElement('a');
+    btn.href = 'single_test.html?id='+encodeURIComponent(id);
+    btn.className='btn';
+    btn.style.width='260px';
+    btn.textContent='▶ テスト'+id+' を始める';
+    btn.addEventListener('click',playClick);
+    area.appendChild(btn);
+  }catch(e){
+    area.innerHTML='<p style="color:#ffaaaa;white-space:pre-line;">エラー:\n'+e.message+'</p>';
+  }
+})();
 </script>
-</body></html>
+</body>
+</html>
