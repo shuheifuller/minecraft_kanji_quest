@@ -7,149 +7,162 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/minecraft-font.css">
 <style>
-.test-wrap{max-width:900px;margin:30px auto;padding:20px;background:rgba(0,0,0,.6);border:3px solid #fff;border-radius:12px;color:#fff}
-.story-box{background:rgba(255,255,255,.1);padding:15px;border-radius:8px;font-size:14px;line-height:1.6;margin:15px 0}
-#nextBtn{display:none;margin-top:20px;width:240px;}
-#autoMsg{font-size:12px;color:#ccc;margin-top:8px;display:none}
+  body.test-bg{min-height:100vh;margin:0;padding:0;}
+  .test-wrap{max-width:920px;margin:30px auto;padding:22px;background:rgba(0,0,0,.65);border:3px solid #fff;border-radius:14px;color:#fff;font-family:sans-serif}
+  .story-box{background:rgba(255,255,255,.1);padding:14px 16px;border-radius:8px;font-size:14px;line-height:1.6;margin:16px 0}
+  #result{font-size:18px;margin-top:18px}
+  #nextBtn{display:none;margin-top:24px;width:240px;}
+  #autoMsg{font-size:12px;color:#ccc;margin-top:8px;display:none}
+  #errorBox{color:#ffaaaa;margin-top:16px;white-space:pre-line;font-size:13px}
 </style>
 </head>
 <body class="test-bg">
 <div class="test-wrap">
-  <a href="test.html" class="back-link" style="display:inline-block;margin-bottom:8px;font-size:12px;color:#fff;text-decoration:underline;">← テスト一覧（現在の1件）</a>
-  <h1 class="mc-title" style="font-size:26px;margin-bottom:10px;">テスト</h1>
+  <a href="test.html" style="display:inline-block;margin-bottom:8px;font-size:12px;color:#fff;text-decoration:underline;">← 現在のテストへ</a>
+  <h1 class="mc-title" style="font-size:26px;margin:0 0 10px;">テスト</h1>
   <img id="headerImg" src="" alt="テスト画像" style="width:100%;max-width:600px;border:3px solid #fff;display:none">
   <div id="story" class="story-box" style="display:none"></div>
   <div id="questions"></div>
-  <button id="checkBtn" class="btn" style="width:220px;display:none">答え合わせ</button>
-  <p id="result" style="margin-top:15px;font-size:18px"></p>
+  <button id="checkBtn" class="btn" style="width:230px;display:none;">答え合わせ</button>
+  <p id="result"></p>
   <button id="nextBtn" class="btn">▶ つぎのテストへ</button>
-  <div id="autoMsg">5秒後に つぎのテスト チェック画面へ もどります…</div>
-  <div id="errorBox" style="color:#ffaaaa;margin-top:20px;"></div>
+  <div id="autoMsg">5秒後に つぎのテスト 画面へ もどります…</div>
+  <div id="errorBox"></div>
 </div>
 
 <script type="module">
-import { addScore, archiveTest, isArchived, firstPendingId, playClick } from './js/app.js';
+/* ====== 最小ユーティリティ (app.js を使わない独立版) ====== */
+const KEY_SCORE   = 'mc_kanji_scores';
+const KEY_ARCHIVE = 'mc_kanji_archive';
+const getScores = ()=>{ try{return JSON.parse(localStorage.getItem(KEY_SCORE)||'[]');}catch{return[];} };
+const addScore  = r => { const s=getScores(); s.push(r); localStorage.setItem(KEY_SCORE,JSON.stringify(s)); };
+const getArchive= ()=>{ try{return JSON.parse(localStorage.getItem(KEY_ARCHIVE)||'[]');}catch{return[];} };
+const archiveTest = id => {
+  const arr = getArchive();
+  const sid = String(id);
+  if(!arr.includes(sid)){
+    arr.push(sid);
+    localStorage.setItem(KEY_ARCHIVE,JSON.stringify(arr));
+  }
+};
+const isArchived = id => getArchive().includes(String(id));
 
-const params = new URLSearchParams(location.search);
-const testId = params.get('id') || '1';
+function escapeHTML(str){return String(str).replace(/[&<>"']/g,s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s]));}
 
+/* ====== DOM 参照 ====== */
+const params    = new URLSearchParams(location.search);
+const testId    = params.get('id') || '1';
 const storyElm  = document.getElementById('story');
 const imgElm    = document.getElementById('headerImg');
 const qWrap     = document.getElementById('questions');
 const checkBtn  = document.getElementById('checkBtn');
 const resultElm = document.getElementById('result');
-const errBox    = document.getElementById('errorBox');
 const nextBtn   = document.getElementById('nextBtn');
 const autoMsg   = document.getElementById('autoMsg');
-
-function showError(msg){ errBox.textContent = msg; }
+const errBox    = document.getElementById('errorBox');
 
 let currentTest = null;
 
+/* ====== 読み込み処理 ====== */
 (async ()=>{
-  let data;
   try{
     const res = await fetch('./tests.json',{cache:'no-store'});
     if(!res.ok){ showError('tests.json 読み込み失敗: HTTP '+res.status); return; }
-    data = await res.json();
-  }catch(e){
-    showError('ネットワーク / JSON エラー: '+e.message);
-    return;
-  }
-  if(!data.tests || !Array.isArray(data.tests)){ showError('tests 配列なし'); return; }
+    let data;
+    try{ data = await res.json(); }catch(e){ showError('JSON解析エラー: '+e.message); return; }
 
-  currentTest = data.tests.find(t=> String(t.id) === String(testId));
-  if(!currentTest){ showError('テストが見つかりません: id='+testId); return; }
+    if(!data.tests || !Array.isArray(data.tests)){ showError('tests 配列がありません。'); return; }
+    currentTest = data.tests.find(t=> String(t.id) === String(testId));
+    if(!currentTest){ showError('テストが見つかりません (id='+testId+')'); return; }
 
-  if(currentTest.image){
-    imgElm.src = 'media/' + currentTest.image;
-    imgElm.style.display='block';
-  }
-  storyElm.textContent = currentTest.story || '';
-  storyElm.style.display='block';
+    // 表示
+    if(currentTest.image){
+      imgElm.src='media/'+currentTest.image;
+      imgElm.style.display='block';
+    }
+    storyElm.textContent = currentTest.story || '';
+    storyElm.style.display='block';
 
-  (currentTest.questions || []).forEach((qObj, idx)=>{
-    const wrap = document.createElement('div');
-    wrap.className='question';
-    wrap.innerHTML = `<p>${idx+1}. ${escapeHTML(qObj.q||'')}</p>`;
-    const ansDiv = document.createElement('div'); ansDiv.className='answers';
-    (qObj.choices || []).forEach((ch,i)=>{
-      const label = document.createElement('label');
-      const correct = (i === qObj.correct);
-      label.innerHTML = `<input type="radio" name="q${idx}" value="${correct?1:0}"> ${escapeHTML(ch)}`;
-      ansDiv.appendChild(label);
+    if(!Array.isArray(currentTest.questions)){
+      showError('questions 配列が不正です。');
+      return;
+    }
+
+    currentTest.questions.forEach((qObj, idx)=>{
+      const wrap = document.createElement('div');
+      wrap.className='question';
+      wrap.innerHTML = `<p>${idx+1}. ${escapeHTML(qObj.q||'')}</p>`;
+      const ansDiv = document.createElement('div'); ansDiv.className='answers';
+      (qObj.choices||[]).forEach((ch,i)=>{
+        const lab = document.createElement('label');
+        lab.innerHTML = `<input type="radio" name="q${idx}" value="${i===qObj.correct?1:0}"> ${escapeHTML(ch)}`;
+        ansDiv.appendChild(lab);
+      });
+      const exp = document.createElement('div');
+      exp.className='explanation';
+      exp.textContent = qObj.explain || '';
+      wrap.appendChild(ansDiv);
+      wrap.appendChild(exp);
+      qWrap.appendChild(wrap);
     });
-    const exp = document.createElement('div');
-    exp.className='explanation';
-    exp.textContent = qObj.explain || '';
-    wrap.appendChild(ansDiv);
-    wrap.appendChild(exp);
-    qWrap.appendChild(wrap);
-  });
 
-  checkBtn.style.display='inline-block';
-  if(isArchived(testId)){
-    // 既に完了済みなら採点無効化＆次ボタン表示
-    finalizeUI(data);
-    return;
-  }
+    checkBtn.style.display='inline-block';
 
-  checkBtn.addEventListener('click', ()=>{
-    playClick();
-    let score=0;
-    document.querySelectorAll('.question').forEach(qEl=>{
-      const sel = qEl.querySelector('input[type=radio]:checked');
-      const labels = qEl.querySelectorAll('label');
-      const exp = qEl.querySelector('.explanation');
-      labels.forEach(l=>l.classList.remove('correct','wrong'));
-      if(sel){
-        if(sel.value==='1'){
-          score++;
-          sel.parentElement.classList.add('correct');
-        }else{
-          sel.parentElement.classList.add('wrong');
-          labels.forEach(l=>{
-            if(l.querySelector('input').value==='1') l.classList.add('correct');
-          });
+    if(isArchived(testId)){
+      // 既に完了済みなら回答表示をロック
+      finalizeAfterScore();
+      return;
+    }
+
+    checkBtn.addEventListener('click', ()=>{
+      let score=0;
+      document.querySelectorAll('.question').forEach(qEl=>{
+        const sel = qEl.querySelector('input[type=radio]:checked');
+        const labs= qEl.querySelectorAll('label');
+        const exp = qEl.querySelector('.explanation');
+        labs.forEach(l=>l.classList.remove('correct','wrong'));
+        if(sel){
+          if(sel.value==='1'){
+            score++;
+            sel.parentElement.classList.add('correct');
+          }else{
+            sel.parentElement.classList.add('wrong');
+            labs.forEach(l=>{
+              if(l.querySelector('input').value==='1') l.classList.add('correct');
+            });
+          }
         }
-      }
-      exp.style.display='block';
+        exp.style.display='block';
+      });
+      resultElm.textContent = `正解数：${score} / ${currentTest.questions.length}`;
+      checkBtn.disabled = true;
+
+      // 保存 & アーカイブ
+      addScore({id:String(testId),score,date:new Date().toLocaleString()});
+      archiveTest(String(testId));
+
+      finalizeAfterScore();
     });
-    resultElm.textContent = `正解数：${score} / ${currentTest.questions.length}`;
-    checkBtn.disabled = true;
 
-    // 保存 & アーカイブ
-    addScore({id:String(testId),score,date:new Date().toLocaleString()});
-    archiveTest(String(testId));
+    nextBtn.addEventListener('click', ()=>{
+      window.location.href='test.html';
+    });
 
-    // 次テスト誘導
-    finalizeUI(data);
-  });
-
-  nextBtn.addEventListener('click',()=>{
-    playClick();
-    window.location.href='test.html'; // test.html が次の未完了を出す
-  });
-
+  }catch(e){
+    showError('予期しないエラー: '+e.message);
+  }
 })();
 
-function finalizeUI(allData){
-  // 次の未完了を判定（現在のを除いた後）
-  const remaining = (allData.tests || []).filter(t=> String(t.id)!==String(testId));
-  const nextId = firstPendingId(remaining);
-  if(nextId){
-    nextBtn.style.display='inline-block';
-    autoMsg.style.display='block';
-    // 5秒後自動遷移（変更可）
-    setTimeout(()=>{ window.location.href='test.html'; }, 5000);
-  }else{
-    resultElm.textContent += ' （すべてのテストをクリアしました！）';
-  }
+/* ====== 採点後 UI ====== */
+function finalizeAfterScore(){
+  // 次のテストが存在するか判定：tests.json を再読込せず簡略化
+  // → 次へ遷移は test.html が再度計算するので無条件に nextBtn を出して OK
+  nextBtn.style.display='inline-block';
+  autoMsg.style.display='block';
+  setTimeout(()=>{ window.location.href='test.html'; }, 5000);
 }
 
-function escapeHTML(str){
-  return String(str).replace(/[&<>"']/g, s=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s]));
-}
+function showError(msg){ errBox.textContent = msg; }
 </script>
 </body>
 </html>
