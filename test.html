@@ -7,104 +7,105 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/minecraft-font.css">
 <style>
-  body.test-bg{min-height:100vh;margin:0;padding:0;font-family:sans-serif;}
-  .current-test-wrap{
-    max-width:820px;margin:40px auto;padding:26px;
-    background:rgba(0,0,0,.65);border:3px solid #fff;border-radius:14px;
-    color:#fff;text-align:center
-  }
-  .info{font-size:12px;line-height:1.6;margin-top:14px;color:#ddd}
-  .done-msg{font-size:18px;margin-top:30px;color:#55ff55;font-weight:bold}
-  .error{margin-top:18px;color:#ffaaaa;white-space:pre-line;font-size:13px}
-  .debug-buttons{margin-top:14px;font-size:11px;opacity:.5}
-  .debug-buttons button{margin:2px;padding:4px 8px;cursor:pointer}
+  body{margin:0;font-family:sans-serif;}
+  .wrap{max-width:820px;margin:40px auto;padding:26px;background:rgba(0,0,0,.65);border:3px solid #fff;border-radius:14px;color:#fff;text-align:center}
+  .error{color:#ffaaaa;white-space:pre-line;margin-top:18px;font-size:13px}
+  .done-msg{font-size:18px;color:#55ff55;font-weight:bold;margin-top:30px}
 </style>
 </head>
 <body class="test-bg">
-  <div class="current-test-wrap">
-    <h1 class="mc-title" style="font-size:28px;margin:0 0 10px;">KANJIMINE QUEST – テスト</h1>
-    <div id="pendingArea"></div>
-    <p class="info">
-      まだ終わっていないテストを 1つだけ 表示します。<br>
-      終わると つぎのテストが あれば あらわれます。
-    </p>
-    <p style="margin-top:16px;">
-      <a href="archive.html" class="btn" style="width:230px;">▶ アーカイブを見る</a>
-    </p>
-    <!-- 開発デバッグ用（不要なら削除）
-    <div class="debug-buttons">
-      <button id="dbgClearArchive">アーカイブ消去</button>
-      <button id="dbgClearScores">スコア消去</button>
-    </div>
-    -->
-    <div id="errorBox" class="error"></div>
-  </div>
+<div class="wrap">
+  <h1 class="mc-title" style="font-size:28px;margin:0 0 14px;">KANJIMINE QUEST – テスト</h1>
+  <div id="slot"></div>
+  <p style="font-size:12px;line-height:1.6;margin-top:14px;">未完了のテストを 1つ ずつ 進めます。</p>
+  <p style="margin-top:16px;"><a href="archive.html" class="btn" style="width:230px;">▶ アーカイブを見る</a></p>
+  <div id="err" class="error"></div>
+</div>
 
-<script type="module">
-/* ==== 最小ユーティリティ（app.js に依存しないローカル版） ==== */
-const KEY_ARCHIVE = 'mc_kanji_archive';
-function getArchive(){ try{return JSON.parse(localStorage.getItem(KEY_ARCHIVE)||'[]');}catch{return[];} }
-function firstPendingId(tests){
-  const arch = new Set(getArchive().map(String));
-  const sorted = [...tests].sort((a,b)=>parseInt(a.id,10)-parseInt(b.id,10));
-  const p = sorted.find(t=>!arch.has(String(t.id)));
-  return p ? String(p.id) : null;
+<script>
+/* ==== デバッグ用ログヘルパ ==== */
+function log(...a){ console.log('[test.html]', ...a); }
+function showError(msg){ document.getElementById('err').textContent = msg; log('ERROR:', msg); }
+
+/* ==== アーカイブ取得 ==== */
+const ARCH_KEY='mc_kanji_archive';
+function getArchive(){
+  try{
+    const v = JSON.parse(localStorage.getItem(ARCH_KEY)||'[]');
+    if(!Array.isArray(v)) return [];
+    return v.map(String);
+  }catch{return [];}
 }
 
-/* ==== 画面要素 ==== */
-const area = document.getElementById('pendingArea');
-const errBox = document.getElementById('errorBox');
+/* ==== 最初の未完了 ==== */
+function firstPendingId(tests){
+  const arch = new Set(getArchive());
+  const sorted = [...tests].sort((a,b)=>parseInt(a.id,10)-parseInt(b.id,10));
+  return sorted.find(t=>!arch.has(String(t.id)))?.id ?? null;
+}
 
-/* ==== 主要処理 ==== */
-(async function loadOne(){
+(async function init(){
+  const slot = document.getElementById('slot');
+
+  let res;
   try{
-    const res = await fetch('./tests.json',{cache:'no-store'});
-    if(!res.ok){
-      showError('tests.json 読み込み失敗: HTTP '+res.status);
-      return;
-    }
-    let data;
-    try{
-      data = await res.json();
-    }catch(e){
-      showError('JSON解析エラー: '+e.message);
-      return;
-    }
-    if(!data.tests || !Array.isArray(data.tests)){
-      showError('tests 配列が見つかりません。');
-      return;
-    }
-    console.log('[test.html] tests.json loaded. total =', data.tests.length, 'archive=', getArchive());
-
-    const id = firstPendingId(data.tests);
-    if(!id){
-      area.innerHTML = '<div class="done-msg">すべてのテストを クリア しました！</div>';
-      return;
-    }
-    // 表示する1件
-    const btn = document.createElement('a');
-    btn.href = 'single_test.html?id=' + encodeURIComponent(id);
-    btn.className = 'btn';
-    btn.style.width='260px';
-    btn.textContent = '▶ テスト' + id + ' を始める';
-    area.innerHTML = '';
-    area.appendChild(btn);
+    // cache bust
+    res = await fetch('./tests.json?ts=' + Date.now(), {cache:'no-store'});
   }catch(e){
-    showError('予期しないエラー: '+e.message);
+    showError('ネットワークエラー: '+e.message);
+    return;
   }
+  if(!res.ok){
+    const head = (await res.text()).slice(0,120);
+    showError('tests.json 読み込み失敗: HTTP '+res.status+'\n先頭: '+head);
+    return;
+  }
+
+  // 生テキスト取得（パターンエラーの原因を探るため先頭ログ）
+  const raw = await res.text();
+  log('Raw first 80 chars:', raw.slice(0,80).replace(/\s/g,' '));
+  let data;
+  try{
+    data = JSON.parse(raw);
+  }catch(e){
+    showError('JSON解析エラー: '+e.message+'\n先頭: '+raw.slice(0,120));
+    return;
+  }
+
+  if(!data.tests || !Array.isArray(data.tests)){
+    showError('tests 配列がありません。keys: '+Object.keys(data));
+    return;
+  }
+
+  log('tests length=', data.tests.length, 'archive=', getArchive());
+
+  // id と image の型をざっくり検査
+  data.tests.forEach((t,i)=>{
+    if(!('id' in t)) log('WARN: test index',i,'に id がありません');
+    if(typeof t.id !== 'string' && typeof t.id !== 'number'){
+      log('WARN: id 型が想定外 index',i,'type=',typeof t.id);
+    }
+  });
+
+  const pendingId = firstPendingId(data.tests);
+  log('pendingId =', pendingId);
+
+  if(!pendingId){
+    slot.innerHTML = '<div class="done-msg">すべてのテストをクリアしました！</div>';
+    return;
+  }
+
+  // 1件のみ表示
+  const a = document.createElement('a');
+  a.href = 'single_test.html?id=' + encodeURIComponent(pendingId);
+  a.className='btn';
+  a.style.width='260px';
+  a.textContent = '▶ テスト' + pendingId + ' を始める';
+  slot.innerHTML = '';
+  slot.appendChild(a);
+
 })();
 
-/* ==== デバッグ（任意） ==== */
-document.getElementById('dbgClearArchive')?.addEventListener('click',()=>{
-  localStorage.removeItem(KEY_ARCHIVE);
-  location.reload();
-});
-document.getElementById('dbgClearScores')?.addEventListener('click',()=>{
-  localStorage.removeItem('mc_kanji_scores');
-  alert('スコアを消去しました（表示は次回更新）。');
-});
-
-function showError(msg){ errBox.textContent = msg; }
 </script>
 </body>
 </html>
