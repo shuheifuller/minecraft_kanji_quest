@@ -7,36 +7,75 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/minecraft-font.css">
 <style>
-.current-test-wrap{
-  max-width:800px;margin:40px auto;padding:24px;
-  background:rgba(0,0,0,.6);border:3px solid #fff;border-radius:12px;
-  color:#fff;text-align:center
-}
-.info{font-size:13px;line-height:1.6;margin-top:10px}
-.done-msg{font-size:18px;margin-top:30px;color:#55ff55}
+  body.test-bg{min-height:100vh;margin:0;padding:0;font-family:sans-serif;}
+  .current-test-wrap{
+    max-width:820px;margin:40px auto;padding:26px;
+    background:rgba(0,0,0,.65);border:3px solid #fff;border-radius:14px;
+    color:#fff;text-align:center
+  }
+  .info{font-size:12px;line-height:1.6;margin-top:14px;color:#ddd}
+  .done-msg{font-size:18px;margin-top:30px;color:#55ff55;font-weight:bold}
+  .error{margin-top:18px;color:#ffaaaa;white-space:pre-line;font-size:13px}
+  .debug-buttons{margin-top:14px;font-size:11px;opacity:.5}
+  .debug-buttons button{margin:2px;padding:4px 8px;cursor:pointer}
 </style>
 </head>
 <body class="test-bg">
-<div class="current-test-wrap">
-  <h1 class="mc-title" style="font-size:28px;margin-bottom:10px;">KANJIMINE QUEST – テスト</h1>
-  <div id="pendingArea"></div>
-  <p class="info">
-    1つずつ じゅんばんに すすめます。<br>
-    テストをおわると つぎのテストが あれば あらわれます。
-  </p>
-  <p style="margin-top:15px;"><a href="archive.html" class="btn" style="width:240px;">▶ アーカイブを見る</a></p>
-</div>
+  <div class="current-test-wrap">
+    <h1 class="mc-title" style="font-size:28px;margin:0 0 10px;">KANJIMINE QUEST – テスト</h1>
+    <div id="pendingArea"></div>
+    <p class="info">
+      まだ終わっていないテストを 1つだけ 表示します。<br>
+      終わると つぎのテストが あれば あらわれます。
+    </p>
+    <p style="margin-top:16px;">
+      <a href="archive.html" class="btn" style="width:230px;">▶ アーカイブを見る</a>
+    </p>
+    <!-- 開発デバッグ用（不要なら削除）
+    <div class="debug-buttons">
+      <button id="dbgClearArchive">アーカイブ消去</button>
+      <button id="dbgClearScores">スコア消去</button>
+    </div>
+    -->
+    <div id="errorBox" class="error"></div>
+  </div>
 
 <script type="module">
-import { firstPendingId, playClick } from './js/app.js';
+/* ==== 最小ユーティリティ（app.js に依存しないローカル版） ==== */
+const KEY_ARCHIVE = 'mc_kanji_archive';
+function getArchive(){ try{return JSON.parse(localStorage.getItem(KEY_ARCHIVE)||'[]');}catch{return[];} }
+function firstPendingId(tests){
+  const arch = new Set(getArchive().map(String));
+  const sorted = [...tests].sort((a,b)=>parseInt(a.id,10)-parseInt(b.id,10));
+  const p = sorted.find(t=>!arch.has(String(t.id)));
+  return p ? String(p.id) : null;
+}
 
-(async ()=>{
-  const area = document.getElementById('pendingArea');
+/* ==== 画面要素 ==== */
+const area = document.getElementById('pendingArea');
+const errBox = document.getElementById('errorBox');
+
+/* ==== 主要処理 ==== */
+(async function loadOne(){
   try{
     const res = await fetch('./tests.json',{cache:'no-store'});
-    if(!res.ok){ area.innerHTML='<p style="color:#ffaaaa;">tests.json 読み込み失敗 (HTTP '+res.status+')</p>'; return;}
-    const data = await res.json();
-    if(!data.tests || !Array.isArray(data.tests)){ area.innerHTML='<p style="color:#ffaaaa;">tests 配列がありません。</p>'; return;}
+    if(!res.ok){
+      showError('tests.json 読み込み失敗: HTTP '+res.status);
+      return;
+    }
+    let data;
+    try{
+      data = await res.json();
+    }catch(e){
+      showError('JSON解析エラー: '+e.message);
+      return;
+    }
+    if(!data.tests || !Array.isArray(data.tests)){
+      showError('tests 配列が見つかりません。');
+      return;
+    }
+    console.log('[test.html] tests.json loaded. total =', data.tests.length, 'archive=', getArchive());
+
     const id = firstPendingId(data.tests);
     if(!id){
       area.innerHTML = '<div class="done-msg">すべてのテストを クリア しました！</div>';
@@ -44,16 +83,28 @@ import { firstPendingId, playClick } from './js/app.js';
     }
     // 表示する1件
     const btn = document.createElement('a');
-    btn.href = 'single_test.html?id='+encodeURIComponent(id);
-    btn.className='btn';
+    btn.href = 'single_test.html?id=' + encodeURIComponent(id);
+    btn.className = 'btn';
     btn.style.width='260px';
-    btn.textContent='▶ テスト'+id+' を始める';
-    btn.addEventListener('click',playClick);
+    btn.textContent = '▶ テスト' + id + ' を始める';
+    area.innerHTML = '';
     area.appendChild(btn);
   }catch(e){
-    area.innerHTML='<p style="color:#ffaaaa;white-space:pre-line;">エラー:\n'+e.message+'</p>';
+    showError('予期しないエラー: '+e.message);
   }
 })();
+
+/* ==== デバッグ（任意） ==== */
+document.getElementById('dbgClearArchive')?.addEventListener('click',()=>{
+  localStorage.removeItem(KEY_ARCHIVE);
+  location.reload();
+});
+document.getElementById('dbgClearScores')?.addEventListener('click',()=>{
+  localStorage.removeItem('mc_kanji_scores');
+  alert('スコアを消去しました（表示は次回更新）。');
+});
+
+function showError(msg){ errBox.textContent = msg; }
 </script>
 </body>
 </html>
