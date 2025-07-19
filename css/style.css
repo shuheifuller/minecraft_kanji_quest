@@ -70,7 +70,7 @@ body.test-bg{background:url('../media/minecraft1.jpg') center/cover fixed;}
 .mc-title {
   font-size: 42px;
   color: #bfbfbf;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   line-height: 1.2;
   text-align: center;
 
