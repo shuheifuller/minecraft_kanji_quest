@@ -11,138 +11,211 @@
   .wrap{max-width:920px;margin:30px auto;padding:22px;background:rgba(0,0,0,.65);border:3px solid #fff;border-radius:14px;color:#fff}
   .story-box{background:rgba(255,255,255,.1);padding:14px 16px;border-radius:8px;font-size:14px;line-height:1.6;margin:16px 0}
   #result{font-size:18px;margin-top:18px}
-  #nextBtn{display:none;margin-top:24px;width:240px;}
-  #autoMsg{font-size:12px;color:#ccc;margin-top:8px;display:none}
+  #nextBtn{display:none;margin-top:28px;width:260px;}
+  #scrollHint{display:none;margin-top:14px;font-size:12px;color:#ccc;}
   #err{color:#ffaaaa;white-space:pre-line;margin-top:16px;font-size:13px}
+  a.back-link[aria-disabled="true"]{
+    opacity:.35;
+    pointer-events:none;
+    text-decoration:none;
+    cursor:default;
+  }
+  .question{margin-bottom:18px;}
+  .answers label{display:block;margin:4px 0;}
+  .answers input{vertical-align:middle;margin-right:4px;}
+  .explanation{display:none;margin:6px 0 4px;padding:6px 8px;background:rgba(255,255,255,.1);border-left:3px solid #66c}
+  .correct{background:rgba(50,160,60,.35);}
+  .wrong{background:rgba(200,50,50,.35);}
 </style>
 </head>
 <body class="test-bg">
 <div class="wrap">
-  <a href="test.html" style="display:inline-block;margin-bottom:8px;font-size:12px;color:#fff;text-decoration:underline;">← 現在のテスト</a>
+  <!-- 戻りリンク：採点後に無効化する -->
+  <a id="backLink" href="test.html" class="back-link" style="display:inline-block;margin-bottom:8px;font-size:12px;color:#fff;text-decoration:underline;">← テスト一覧へ戻る</a>
   <h1 class="mc-title" style="font-size:26px;margin:0 0 10px;">テスト</h1>
   <img id="img" src="" alt="テスト画像" style="width:100%;max-width:600px;border:3px solid #fff;display:none">
   <div id="story" class="story-box" style="display:none"></div>
   <div id="questions"></div>
   <button id="checkBtn" class="btn" style="width:230px;display:none;">答え合わせ</button>
   <p id="result"></p>
+  <div id="scrollHint">↓ 下にスクロールして ぜんぶの せつめい を 読みましょう ↓</div>
   <button id="nextBtn" class="btn">▶ つぎのテストへ</button>
-  <div id="autoMsg">5秒後に もどります…</div>
   <div id="err"></div>
 </div>
 
 <script>
+/* ================== 基本ユーティリティ ================== */
 function log(...a){ console.log('[single_test]',...a); }
 function showError(m){ document.getElementById('err').textContent=m; log('ERROR:',m); }
 
 const SCORE_KEY='mc_kanji_scores';
 const ARCH_KEY='mc_kanji_archive';
 const getScores=()=>{try{return JSON.parse(localStorage.getItem(SCORE_KEY)||'[]');}catch{return[];}};
-const addScore=r=>{const l=getScores();l.push(r);localStorage.setItem(SCORE_KEY,JSON.stringify(l));};
-const getArchive=()=>{try{return JSON.parse(localStorage.getItem(ARCH_KEY)||'[]');}catch{return[];}};
-const archiveTest=id=>{
-  const arr=getArchive(); const sid=String(id);
-  if(!arr.includes(sid)){arr.push(sid);localStorage.setItem(ARCH_KEY,JSON.stringify(arr));}
+const addScore = r => { const l=getScores(); l.push(r); localStorage.setItem(SCORE_KEY,JSON.stringify(l)); };
+const getArchive = ()=>{try{return JSON.parse(localStorage.getItem(ARCH_KEY)||'[]');}catch{return[];}};
+const archiveTest = id => {
+  const arr = getArchive(); const sid=String(id);
+  if(!arr.includes(sid)){ arr.push(sid); localStorage.setItem(ARCH_KEY, JSON.stringify(arr)); }
 };
-const isArchived=id=>getArchive().includes(String(id));
+const isArchived = id => getArchive().includes(String(id));
 
-const params=new URLSearchParams(location.search);
-const testId=params.get('id')||'1';
+const params = new URLSearchParams(location.search);
+const testId = params.get('id') || '1';
 
-const imgElm=document.getElementById('img');
-const storyElm=document.getElementById('story');
-const qWrap=document.getElementById('questions');
-const checkBtn=document.getElementById('checkBtn');
-const resultElm=document.getElementById('result');
-const nextBtn=document.getElementById('nextBtn');
-const autoMsg=document.getElementById('autoMsg');
+const imgElm    = document.getElementById('img');
+const storyElm  = document.getElementById('story');
+const qWrap     = document.getElementById('questions');
+const checkBtn  = document.getElementById('checkBtn');
+const resultElm = document.getElementById('result');
+const nextBtn   = document.getElementById('nextBtn');
+const backLink  = document.getElementById('backLink');
+const scrollHint= document.getElementById('scrollHint');
 
-function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+let finished = false;
+let testData = null;
 
+function escapeHTML(s){
+  return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ================== メインロード ================== */
 (async function load(){
   let res;
   try{
-    res = await fetch('./tests.json?ts='+Date.now(),{cache:'no-store'});
-  }catch(e){ showError('ネットワークエラー: '+e.message); return;}
+    res = await fetch('./tests.json?ts='+Date.now(), { cache:'no-store' });
+  }catch(e){ showError('ネットワークエラー: '+e.message); return; }
   if(!res.ok){ showError('tests.json 読み込み失敗: HTTP '+res.status); return; }
-  const raw=await res.text();
-  log('Raw first 80 chars:', raw.slice(0,80).replace(/\s/g,' '));
+
+  const raw = await res.text();
   let data;
-  try{ data=JSON.parse(raw);}catch(e){ showError('JSON解析エラー: '+e.message); return;}
-  if(!data.tests||!Array.isArray(data.tests)){ showError('tests 配列なし'); return;}
+  try{ data = JSON.parse(raw); }
+  catch(e){ showError('JSON解析エラー: '+e.message); return; }
 
-  const test=data.tests.find(t=>String(t.id)===String(testId));
-  if(!test){ showError('テストが見つかりません id='+testId); return; }
+  if(!data.tests || !Array.isArray(data.tests)){ showError('tests 配列なし'); return; }
 
-  if(test.image){
-    imgElm.src='media/'+test.image;
+  testData = data.tests.find(t=>String(t.id)===String(testId));
+  if(!testData){ showError('テストが見つかりません id='+testId); return; }
+
+  if(testData.image){
+    imgElm.src='media/'+testData.image;
     imgElm.style.display='block';
   }
-  storyElm.textContent=test.story||'';
+  storyElm.textContent = testData.story || '';
   storyElm.style.display='block';
 
-  if(!Array.isArray(test.questions)){ showError('questions 不正'); return;}
+  if(!Array.isArray(testData.questions)){ showError('questions 不正'); return; }
 
-  test.questions.forEach((qObj,idx)=>{
-    const wrap=document.createElement('div');
-    wrap.className='question';
-    wrap.innerHTML=`<p>${idx+1}. ${escapeHTML(qObj.q||'')}</p>`;
-    const ansDiv=document.createElement('div'); ansDiv.className='answers';
-    (qObj.choices||[]).forEach((ch,i)=>{
-      const lab=document.createElement('label');
-      lab.innerHTML=`<input type="radio" name="q${idx}" value="${i===qObj.correct?1:0}"> ${escapeHTML(ch)}`;
-      ansDiv.appendChild(lab);
-    });
-    const exp=document.createElement('div');
-    exp.className='explanation';
-    exp.textContent=qObj.explain||'';
-    wrap.appendChild(ansDiv);
-    wrap.appendChild(exp);
-    qWrap.appendChild(wrap);
-  });
+  renderQuestions(testData.questions);
 
   checkBtn.style.display='inline-block';
 
   if(isArchived(testId)){
-    finalize(); // 既に完了済み
+    // 既クリアテスト：答え合わせ不要。結果再表示（点数履歴最後を探す）
+    showArchivedView();
     return;
   }
 
-  checkBtn.addEventListener('click',()=>{
-    let score=0;
-    document.querySelectorAll('.question').forEach(qEl=>{
-      const sel=qEl.querySelector('input[type=radio]:checked');
-      const labels=qEl.querySelectorAll('label');
-      const exp=qEl.querySelector('.explanation');
-      labels.forEach(l=>l.classList.remove('correct','wrong'));
-      if(sel){
-        if(sel.value==='1'){
-          score++;
-          sel.parentElement.classList.add('correct');
-        }else{
-          sel.parentElement.classList.add('wrong');
-          labels.forEach(l=>{
-            if(l.querySelector('input').value==='1') l.classList.add('correct');
-          });
-        }
-      }
-      exp.style.display='block';
-    });
-    resultElm.textContent=`正解数：${score} / ${test.questions.length}`;
-    checkBtn.disabled=true;
-    addScore({id:String(testId),score,date:new Date().toLocaleString()});
-    archiveTest(String(testId));
-    finalize();
-  });
-
-  nextBtn.addEventListener('click',()=>{ window.location.href='test.html'; });
-
+  checkBtn.addEventListener('click', doGrade, { once:true });
 })();
 
-function finalize(){
-  nextBtn.style.display='inline-block';
-  autoMsg.style.display='block';
-  setTimeout(()=>{ window.location.href='test.html'; },5000);
+/* ================== 質問描画 ================== */
+function renderQuestions(list){
+  list.forEach((qObj, idx)=>{
+    const wrap = document.createElement('div');
+    wrap.className='question';
+
+    const p = document.createElement('p');
+    p.innerHTML = `${idx+1}. ${escapeHTML(qObj.q||'')}`;
+    wrap.appendChild(p);
+
+    const ansDiv = document.createElement('div');
+    ansDiv.className='answers';
+
+    (qObj.choices||[]).forEach((ch,i)=>{
+      const label = document.createElement('label');
+      const input = document.createElement('input');
+      input.type='radio';
+      input.name='q'+idx;
+      input.value = (i === qObj.correct) ? '1':'0';
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(' '+ ch));
+      ansDiv.appendChild(label);
+    });
+
+    const exp = document.createElement('div');
+    exp.className='explanation';
+    exp.textContent = qObj.explain || '';
+    wrap.appendChild(ansDiv);
+    wrap.appendChild(exp);
+
+    qWrap.appendChild(wrap);
+  });
 }
+
+/* ================== 採点処理 ================== */
+function doGrade(){
+  if(finished) return;
+  finished = true;
+
+  disableBackLink();  // ★戻りリンク無効化
+
+  let score=0;
+  const total = testData.questions.length;
+
+  document.querySelectorAll('.question').forEach(qEl=>{
+    const sel = qEl.querySelector('input[type=radio]:checked');
+    const labels = qEl.querySelectorAll('label');
+    const exp = qEl.querySelector('.explanation');
+    labels.forEach(l=>l.classList.remove('correct','wrong'));
+    if(sel){
+      if(sel.value==='1'){
+        score++;
+        sel.parentElement.classList.add('correct');
+      }else{
+        sel.parentElement.classList.add('wrong');
+        labels.forEach(l=>{
+          if(l.querySelector('input').value==='1'){ l.classList.add('correct'); }
+        });
+      }
+    }
+    exp.style.display='block';
+  });
+
+  resultElm.textContent = `正解数：${score} / ${total}`;
+  checkBtn.disabled = true;
+
+  addScore({ id:String(testId), score, date:new Date().toLocaleString() });
+  archiveTest(String(testId));
+
+  // スクロール誘導 + 次ボタン
+  scrollHint.style.display='block';
+  nextBtn.style.display='inline-block';
+}
+
+/* ================== 既アーカイブ表示（復習モード） ================== */
+function showArchivedView(){
+  disableBackLink(); // 復習時も accidental tap を避けたいなら有効
+  // 全説明を展開
+  document.querySelectorAll('.question .explanation').forEach(e=>e.style.display='block');
+  // 次へボタン表示
+  nextBtn.style.display='inline-block';
+  resultElm.textContent = '（このテストは完了済みです）';
+}
+
+/* ================== 戻りリンク無効化 ================== */
+function disableBackLink(){
+  if(!backLink) return;
+  backLink.setAttribute('aria-disabled','true');
+  backLink.removeAttribute('href');
+  backLink.style.pointerEvents='none';
+  backLink.style.cursor='default';
+  backLink.title='採点後はここから戻れません。下の「つぎのテストへ」を使ってください。';
+}
+
+/* ================== 次テスト遷移 ================== */
+nextBtn.addEventListener('click', ()=>{
+  window.location.href='test.html';
+});
 </script>
 </body>
 </html>
