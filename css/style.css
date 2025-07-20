@@ -38,18 +38,85 @@ th,td{padding:10px;border:2px solid #fff;font-size:12px}
 .wrong{background:rgba(255,0,0,.2)}
 
 /*------------------------------------
-  スコアバッジ
+  スコア表示（ラッパ + バッジ + リセットボタン）
 ------------------------------------*/
-.score-badge {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  background: #0008; /* Darker color with 0.5 opacity */
-  color: #fff; /* Set text color to white */
-  padding: 10px 18px;
-  border: 3px solid #fff;
-  font-size: 14px;
+/* 右上に縦並びで配置するラッパ。 */
+.score-badge-wrap{
+  position:fixed;
+  top:10px;
+  right:10px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:8px;
+  z-index:50;
 }
+
+/* 既存の固定指定を打ち消し、ラッパ内で縦並びに */
+.score-badge{
+  position:static !important;
+  top:auto !important;
+  right:auto !important;
+  background:#0008;
+  color:#fff;
+  padding:10px 18px;
+  border:3px solid #fff;
+  font-size:14px;
+  line-height:1.2;
+  margin:0;
+  border-radius:6px;
+  box-shadow:0 0 6px rgba(0,0,0,.5);
+}
+
+/* リセットボタン（スコアのすぐ下） */
+#resetScoreBtn{
+  position:static;
+  background:#444;
+  color:#fff;
+  border:2px solid #fff;
+  padding:6px 12px;
+  font-size:12px;
+  cursor:pointer;
+  border-radius:6px;
+  font-family:inherit;
+  box-shadow:0 0 4px rgba(0,0,0,.4);
+  transition:background .2s, transform .1s;
+  width:100%;               /* スコアと幅合わせ（右側でそろえるなら width:auto に変更可） */
+  text-align:center;
+}
+#resetScoreBtn:hover{background:#666;}
+#resetScoreBtn:active{transform:translateY(2px);}
+
+/* 変換メッセージ（存在する場合） */
+#conversionMsg{
+  position:fixed;
+  left:50%;
+  bottom:30px;
+  transform:translateX(-50%);
+  background:rgba(0,0,0,.75);
+  color:#fff;
+  padding:14px 22px;
+  border:2px solid #fff;
+  border-radius:12px;
+  font-size:14px;
+  line-height:1.5;
+  max-width:90%;
+  text-align:center;
+  z-index:60;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .4s;
+  font-family:"Minecraft","Noto Sans JP",sans-serif;
+}
+#conversionMsg.show{opacity:1;}
+
+@media (max-width:640px){
+  .score-badge-wrap{top:6px;right:6px;gap:6px;}
+  .score-badge{padding:8px 14px;font-size:12px;}
+  #resetScoreBtn{font-size:11px;padding:5px 10px;}
+  #conversionMsg{font-size:12px;padding:12px 18px;}
+}
+
 /*------------------------------------
   背景画像 (test.html)
 ------------------------------------*/
@@ -57,45 +124,35 @@ body.test-bg{background:url('../media/minecraft1.jpg') center/cover fixed;}
 @media (prefers-color-scheme: dark){
   .card{border-color:#55ff55}
 }
-/* 末尾に追記 －－－－ */
+
+/*------------------------------------
+  ホームメニュー
+------------------------------------*/
 .home-menu{
   display:flex;
   flex-direction:column;
   justify-content:center;
   align-items:center;
-  min-height:100vh;      /* 垂直方向の中央寄せ */
+  min-height:100vh;
   text-align:center;
 }
-/* ===== Minecraft-like 立体タイトル ===== */
 .mc-title {
   font-size: 42px;
   color: #bfbfbf;
   letter-spacing: 1.5px;
   line-height: 1.2;
   text-align: center;
-
-  /* Darker 3D text shadow */
   text-shadow:
     2px 2px 0 #555555,
     4px 4px 0 #2e2e2e,
     8px 8px 0 #000000;
 }
-
 @media (max-width:600px) {
   .mc-title {font-size: 26px;}
 }
 
-.home-menu {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh; /* Vertically center the content */
-  text-align: center;
-}
-
 .home-menu .btn {
-  background: rgba(30, 30, 30, 0.6); /* Green color with 80% opacity */
+  background: rgba(30, 30, 30, 0.6);
   border: 3px solid #fff;
   color: #fff;
   padding: 14px 20px;
@@ -105,7 +162,6 @@ body.test-bg{background:url('../media/minecraft1.jpg') center/cover fixed;}
   cursor: pointer;
   transition: background 0.2s;
 }
-
 .home-menu .btn:hover {
-  background: rgba(50, 50, 50, 0.6); /* Slightly lighter green on hover */
+  background: rgba(50, 50, 50, 0.6);
 }
