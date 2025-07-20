@@ -8,50 +8,92 @@
   <!-- 共通スタイル -->
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/minecraft-font.css">
+  <style>
+    /* 追加スタイル（最小限） */
+    .score-badge-wrap{
+      position:fixed; top:10px; right:10px;
+      display:flex; flex-direction:column; align-items:flex-end; gap:6px;
+      z-index:50;
+    }
+    #resetScoreBtn{
+      font-family:inherit;
+      background:#444;
+      color:#fff;
+      border:2px solid #fff;
+      padding:4px 10px;
+      font-size:12px;
+      cursor:pointer;
+      border-radius:6px;
+      box-shadow:0 0 4px rgba(0,0,0,.5);
+      transition:background .2s, transform .1s;
+    }
+    #resetScoreBtn:hover{ background:#666; }
+    #resetScoreBtn:active{ transform:translateY(2px); }
+    #conversionMsg{
+      position:fixed;
+      left:50%; bottom:30px;
+      transform:translateX(-50%);
+      background:rgba(0,0,0,.75);
+      color:#fff;
+      padding:14px 22px;
+      border:2px solid #fff;
+      border-radius:12px;
+      font-size:14px;
+      line-height:1.5;
+      max-width:90%;
+      text-align:center;
+      z-index:60;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .4s;
+      font-family:"Minecraft", "Noto Sans JP", sans-serif;
+    }
+    #conversionMsg.show{ opacity:1; }
+    @media (max-width:640px){
+      .score-badge-wrap{ right:6px; top:6px; }
+      #resetScoreBtn{ font-size:11px; padding:4px 8px; }
+    }
+  </style>
 </head>
 <body>
 
-  <!-- ★ 背景動画：muted / playsinline / loop / autoplay すべて指定 -->
+  <!-- 背景動画 -->
   <video id="bgVideo" class="video-bg"
          src="media/bg.mp4"
          muted playsinline loop autoplay></video>
 
-  <!-- 右上スコア -->
-  <div class="score-badge">総得点：<span id="totalScore">0</span></div>
-
-  <!-- Centered content -->
-<div class="home-menu">
-  <h1 class="mc-title">KANJIMINE QUEST</h1>
-  <div>
-    <a href="test.html" class="btn">▶ 漢字読解テストへ</a>
-    <a href="score.html" class="btn">▶ スコアシート</a>
-    <a href="archive.html" class="btn">▶ アーカイブ</a>
+  <!-- スコア表示 + リセットボタン -->
+  <div class="score-badge-wrap">
+    <div class="score-badge">総得点：<span id="totalScore">0</span></div>
+    <button id="resetScoreBtn" type="button">スコアをリセット</button>
   </div>
-</div>
 
+  <!-- 中央メニュー -->
+  <div class="home-menu">
+    <h1 class="mc-title">KANJIMINE QUEST</h1>
+    <div>
+      <a href="test.html" class="btn">▶ 漢字読解テストへ</a>
+      <a href="score.html" class="btn">▶ スコアシート</a>
+      <a href="archive.html" class="btn">▶ アーカイブ</a>
+    </div>
+  </div>
 
-  <!-- -------- JavaScript -------- -->
-  <!-- ホーム用初期化（クリック SE ＋合計スコア） -->
+  <!-- 変換メッセージ表示領域 -->
+  <div id="conversionMsg" aria-live="polite"></div>
+
+  <!-- JS -->
   <script type="module" src="js/home.js"></script>
 
-  <!-- ★ 背景動画が自動再生されない端末向けの再生保証スクリプト -->
+  <!-- 背景動画再生保証 -->
   <script type="module">
-    import './js/home.js';  /* 既に読み込んでいても重複実行なし */
-
+    import './js/home.js';
     const bgVid = document.getElementById('bgVideo');
-
-    /** 再生を試み、Promise が reject されても無視 */
-    function tryPlay() {
+    function tryPlay(){
       const p = bgVid.play();
-      if (p !== undefined) {
-        p.catch(() => {}); // ブロックされても何もしない
-      }
+      if(p) p.catch(()=>{});
     }
-
-    tryPlay(); // ページ読み込み直後に 1 度目
-
-    /* 最初のユーザ操作で再試行（一部 iOS で必須） */
-    document.addEventListener('click', tryPlay, { once: true });
+    tryPlay();
+    document.addEventListener('click', tryPlay, { once:true });
   </script>
 </body>
 </html>
