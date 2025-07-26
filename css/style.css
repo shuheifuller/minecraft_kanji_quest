@@ -71,7 +71,7 @@ th,td{padding:10px;border:2px solid #fff;font-size:12px}
 /* リセットボタン（スコアのすぐ下） */
 #resetScoreBtn{
   position:static;
-  background:#0008;
+  background:#43a047;
   color:#fff;
   border:2px solid #fff;
   padding:6px 12px;
@@ -79,12 +79,12 @@ th,td{padding:10px;border:2px solid #fff;font-size:12px}
   cursor:pointer;
   border-radius:6px;
   font-family:inherit;
-  box-shadow:0 0 6px rgba(0,0,0,.5);
+  box-shadow:0 0 4px rgba(0,0,0,.4);
   transition:background .2s, transform .1s;
   width:100%;               /* スコアと幅合わせ（右側でそろえるなら width:auto に変更可） */
   text-align:center;
 }
-#resetScoreBtn:hover{background:#666;}
+#resetScoreBtn:hover{background:#388e3c;}
 #resetScoreBtn:active{transform:translateY(2px);}
 
 /* 変換メッセージ（存在する場合） */
