@@ -69,23 +69,34 @@ th,td{padding:10px;border:2px solid #fff;font-size:12px}
 }
 
 /* リセットボタン（スコアのすぐ下） */
-#resetScoreBtn{
-  position:static;
-  background:#43a047;
-  color:#fff;
-  border:2px solid #fff;
-  padding:6px 12px;
-  font-size:12px;
-  cursor:pointer;
-  border-radius:6px;
-  font-family:inherit;
-  box-shadow:0 0 4px rgba(0,0,0,.4);
-  transition:background .2s, transform .1s;
-  width:100%;               /* スコアと幅合わせ（右側でそろえるなら width:auto に変更可） */
-  text-align:center;
+#resetScoreBtn {
+  position: static;
+  background: rgba(67, 160, 71, 0.8); /* Green color with 80% opacity */
+  color: #fff;
+  border: 2px solid #fff;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  font-family: inherit;
+  box-shadow: 0 0 4px rgba(0,0,0,.4);
+  transition: background .2s, transform .1s;
+  width: 100%;
+  text-align: center;
 }
-#resetScoreBtn:hover{background:#388e3c;}
-#resetScoreBtn:active{transform:translateY(2px);}
+
+#resetScoreBtn:hover {background: rgba(56, 142, 60, 0.8); /* Slightly darker green with 80% opacity */
+}
+#resetScoreBtn:active {transform: translateY(2px);
+}
+
+@media (max-width:640px) {
+  #resetScoreBtn {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+}
+
 
 /* 変換メッセージ（存在する場合） */
 #conversionMsg{
