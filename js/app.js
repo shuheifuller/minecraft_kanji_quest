@@ -18,8 +18,14 @@ export const KEY_ARCHIVE = 'mc_kanji_archive';  // 配列: ["1","2",...]
 
 /* ---------- スコア関連 ---------- */
 /** 全スコア取得 */
-export const getScores = () =>
-  JSON.parse(localStorage.getItem(KEY_SCORE) || '[]');
+export const getScores = () => {
+  try {
+    return JSON.parse(localStorage.getItem(KEY_SCORE) || '[]');
+  } catch(e) {
+    console.error('Error parsing scores:', e);
+    return [];
+  }
+};
 
 /** スコア追加 */
 export const addScore = record => {
@@ -30,8 +36,14 @@ export const addScore = record => {
 
 /* ---------- アーカイブ関連 ---------- */
 /** アーカイブ配列取得 */
-export const getArchive = () =>
-  JSON.parse(localStorage.getItem(KEY_ARCHIVE) || '[]');
+export const getArchive = () => {
+  try {
+    return JSON.parse(localStorage.getItem(KEY_ARCHIVE) || '[]');
+  } catch(e) {
+    console.error('Error parsing archive:', e);
+    return [];
+  }
+};
 
 /** テストIDをアーカイブへ追加（重複回避） */
 export const archiveTest = id => {
@@ -96,17 +108,25 @@ let clickBuffer = null;
 let clickLoadError = false;
 
 /* 効果音プリロード */
-fetch('media/click.mp3')
-  .then(r => {
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.arrayBuffer();
-  })
-  .then(buf => audioCtx.decodeAudioData(buf))
-  .then(decoded => { clickBuffer = decoded; })
-  .catch(err => {
-    console.error('click.mp3 load error:', err);
+const loadClickSound = async () => {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch('media/click.mp3', {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const buffer = await response.arrayBuffer();
+    clickBuffer = await audioCtx.decodeAudioData(buffer);
+  } catch (err) {
+    console.error('click.mp3 load error:', String(err).replace(/[\r\n]/g, ' '));
     clickLoadError = true;
-  });
+  }
+};
+loadClickSound();
 
 /**
  * クリック効果音を再生

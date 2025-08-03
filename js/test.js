@@ -4,9 +4,17 @@ import {addScore,archiveTest,isArchived} from './app.js';
 const params = new URLSearchParams(location.search);
 const id = params.get('id') || '1';
 
-fetch('tests.json').then(r=>r.json()).then(data=>{
+fetch('tests.json').then(r=>{
+  if(!r.ok) throw new Error('Failed to load tests');
+  return r.json();
+}).then(data=>{
   const test = data.tests.find(t=>t.id===id);
-  if(!test){document.body.innerHTML='<p>テストが見つかりません</p>';return;}
+  if(!test){
+    const p = document.createElement('p');
+    p.textContent = 'テストが見つかりません';
+    document.body.appendChild(p);
+    return;
+  }
 
   // ヘッダー画像 & ストーリー
   document.getElementById('headerImg').src = `media/${test.image}`;
@@ -16,13 +24,25 @@ fetch('tests.json').then(r=>r.json()).then(data=>{
   const qWrap = document.getElementById('questions');
   test.questions.forEach((q,idx)=>{
     const div=document.createElement('div');div.className='question';
-    div.innerHTML=`<p>${idx+1}. ${q.q}</p>`;
+    const p = document.createElement('p');
+    p.textContent = `${idx+1}. ${q.q}`;
+    div.appendChild(p);
     const ansDiv=document.createElement('div');ansDiv.className='answers';
     q.choices.forEach((c,i)=>{
-      ansDiv.innerHTML+=`<label><input type="radio" name="q${idx}" value="${i===q.correct?1:0}"> ${c}</label>`;
+      const label = document.createElement('label');
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = `q${idx}`;
+      input.value = i===q.correct?1:0;
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(' ' + c));
+      ansDiv.appendChild(label);
     });
     div.appendChild(ansDiv);
-    div.innerHTML+=`<div class="explanation">${q.explain}</div>`;
+    const expDiv = document.createElement('div');
+    expDiv.className = 'explanation';
+    expDiv.textContent = q.explain;
+    div.appendChild(expDiv);
     qWrap.appendChild(div);
   });
 
@@ -55,4 +75,9 @@ fetch('tests.json').then(r=>r.json()).then(data=>{
   if(isArchived(id)){
     document.getElementById('checkBtn').disabled=true;
   }
+}).catch(err=>{
+  console.error('Error loading test:', err);
+  const p = document.createElement('p');
+  p.textContent = 'テストの読み込みに失敗しました';
+  document.body.appendChild(p);
 });

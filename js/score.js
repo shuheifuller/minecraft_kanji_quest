@@ -3,7 +3,15 @@ document.addEventListener('DOMContentLoaded',()=>{
   const tbody=document.getElementById('scoreBody');
   getScores().slice(-50).reverse().forEach(rec=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${rec.id}</td><td>${rec.score}</td><td>${rec.date}</td>`;
+    const td1 = document.createElement('td');
+    td1.textContent = rec.id;
+    const td2 = document.createElement('td');
+    td2.textContent = rec.score;
+    const td3 = document.createElement('td');
+    td3.textContent = rec.date;
+    tr.appendChild(td1);
+    tr.appendChild(td2);
+    tr.appendChild(td3);
     tbody.appendChild(tr);
   });
 });
