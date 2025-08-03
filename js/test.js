@@ -4,7 +4,11 @@ import {addScore,archiveTest,isArchived} from './app.js';
 const params = new URLSearchParams(location.search);
 const id = params.get('id') || '1';
 
-fetch('tests.json').then(r=>{
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+fetch('tests.json', { signal: controller.signal }).then(r=>{
+  clearTimeout(timeoutId);
   if(!r.ok) throw new Error('Failed to load tests');
   return r.json();
 }).then(data=>{
@@ -66,8 +70,12 @@ fetch('tests.json').then(r=>{
     document.getElementById('result').textContent=`正解数：${score} / 10`;
 
     // スコア保存 & アーカイブ移動
-    addScore({id,score,date:new Date().toLocaleString()});
-    archiveTest(id);
+    try {
+      addScore({id,score,date:new Date().toLocaleString()});
+      archiveTest(id);
+    } catch(e) {
+      console.error('Error saving score:', String(e).replace(/[\r\n]/g, ' '));
+    }
     document.getElementById('checkBtn').disabled=true;
   });
 
@@ -76,7 +84,8 @@ fetch('tests.json').then(r=>{
     document.getElementById('checkBtn').disabled=true;
   }
 }).catch(err=>{
-  console.error('Error loading test:', err);
+  const sanitizedError = String(err).replace(/[\r\n\t]/g, ' ').substring(0, 200);
+  console.error('Error loading test:', sanitizedError);
   const p = document.createElement('p');
   p.textContent = 'テストの読み込みに失敗しました';
   document.body.appendChild(p);

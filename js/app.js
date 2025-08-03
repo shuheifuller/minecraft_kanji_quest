@@ -17,49 +17,88 @@ export const KEY_SCORE   = 'mc_kanji_scores';   // 配列: [{ id, score, date },
 export const KEY_ARCHIVE = 'mc_kanji_archive';  // 配列: ["1","2",...]
 
 /* ---------- スコア関連 ---------- */
+let scoresCache = null;
+let archiveCache = null;
+
 /** 全スコア取得 */
 export const getScores = () => {
+  if (scoresCache !== null) return scoresCache;
   try {
-    return JSON.parse(localStorage.getItem(KEY_SCORE) || '[]');
+    scoresCache = JSON.parse(localStorage.getItem(KEY_SCORE) || '[]');
+    return scoresCache;
   } catch(e) {
-    console.error('Error parsing scores:', e);
+    console.error('Error parsing scores:', String(e).replace(/[\r\n]/g, ' '));
+    scoresCache = [];
     return [];
   }
 };
 
 /** スコア追加 */
 export const addScore = record => {
-  const list = getScores();
-  list.push(record);
-  localStorage.setItem(KEY_SCORE, JSON.stringify(list));
+  try {
+    const list = getScores();
+    list.push(record);
+    localStorage.setItem(KEY_SCORE, JSON.stringify(list));
+    scoresCache = list; // Update cache
+  } catch(e) {
+    if (e.name === 'QuotaExceededError') {
+      console.error('localStorage quota exceeded');
+    } else {
+      console.error('Error saving score:', String(e).replace(/[\r\n]/g, ' '));
+    }
+    throw e;
+  }
 };
 
 /* ---------- アーカイブ関連 ---------- */
 /** アーカイブ配列取得 */
 export const getArchive = () => {
+  if (archiveCache !== null) return archiveCache;
   try {
-    return JSON.parse(localStorage.getItem(KEY_ARCHIVE) || '[]');
+    archiveCache = JSON.parse(localStorage.getItem(KEY_ARCHIVE) || '[]');
+    return archiveCache;
   } catch(e) {
-    console.error('Error parsing archive:', e);
+    console.error('Error parsing archive:', String(e).replace(/[\r\n]/g, ' '));
+    archiveCache = [];
     return [];
   }
 };
 
 /** テストIDをアーカイブへ追加（重複回避） */
 export const archiveTest = id => {
-  const arr = getArchive();
-  const sid = String(id);
-  if (!arr.includes(sid)) {
-    arr.push(sid);
-    localStorage.setItem(KEY_ARCHIVE, JSON.stringify(arr));
+  try {
+    const arr = getArchive();
+    const sid = String(id);
+    if (!arr.includes(sid)) {
+      arr.push(sid);
+      localStorage.setItem(KEY_ARCHIVE, JSON.stringify(arr));
+      archiveCache = arr; // Update cache
+    }
+  } catch(e) {
+    if (e.name === 'QuotaExceededError') {
+      console.error('localStorage quota exceeded');
+    } else {
+      console.error('Error archiving test:', String(e).replace(/[\r\n]/g, ' '));
+    }
+    throw e;
   }
 };
 
 /** アーカイブ解除 */
 export const undoArchive = id => {
-  const sid = String(id);
-  const arr = getArchive().filter(x => x !== sid);
-  localStorage.setItem(KEY_ARCHIVE, JSON.stringify(arr));
+  try {
+    const sid = String(id);
+    const arr = getArchive().filter(x => x !== sid);
+    localStorage.setItem(KEY_ARCHIVE, JSON.stringify(arr));
+    archiveCache = arr; // Update cache
+  } catch(e) {
+    if (e.name === 'QuotaExceededError') {
+      console.error('localStorage quota exceeded');
+    } else {
+      console.error('Error removing from archive:', String(e).replace(/[\r\n]/g, ' '));
+    }
+    throw e;
+  }
 };
 
 /** 指定IDがアーカイブ済みか */
@@ -169,4 +208,6 @@ export function getScoreHistory(id) {
 export function _debugClearAll() {
   localStorage.removeItem(KEY_SCORE);
   localStorage.removeItem(KEY_ARCHIVE);
+  scoresCache = null;
+  archiveCache = null;
 }

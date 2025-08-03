@@ -40,11 +40,18 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   /* 初回ユーザ操作で AudioContext/BGM を resume */
-  document.addEventListener('click', () => {
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const bgm = document.getElementById('bgm');
-    if (bgm && bgm.paused) bgm.play().catch(()=>{});
-  }, { once:true });
+  const container = document.querySelector('.home-menu');
+  if (container) {
+    container.addEventListener('click', () => {
+      if (audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
+      const bgm = document.getElementById('bgm');
+      if (bgm && bgm.paused) {
+        bgm.play().catch(e => {
+          console.warn('BGM play failed:', String(e).replace(/[\r\n]/g, ' '));
+        });
+      }
+    }, { once:true });
+  }
 
   /* メッセージ表示ユーティリティ */
   let msgTimer = null;
